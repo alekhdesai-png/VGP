@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17120d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Guess the Price</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=DM+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#17120d; --card:#231a12; --line:#3b2d20; --cream:#f3e6c8; --dim:#b9a582; --gold:#e0a83a; --rust:#c8562e; --teal:#4fa39c; --bad:#e2664a; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--cream); font-family: 'DM Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  body { min-height: 100dvh; padding: max(14px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; }
+  .display { font-family: 'Abril Fatface', Georgia, 'Times New Roman', serif; font-weight: 400; letter-spacing: .5px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  header .logo { font-size: 20px; color: var(--gold); }
+  .chip { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 14px; white-space: nowrap; }
+  .chip b { color: var(--gold); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 14px; max-width: 520px; width: 100%; margin: 0 auto; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+  h1 { font-size: 30px; margin: 0 0 6px; line-height: 1.1; }
+  p { margin: 0; color: var(--dim); line-height: 1.45; }
+  label { display: block; font-size: 14px; color: var(--dim); margin-bottom: 8px; }
+  input { width: 100%; font: inherit; font-size: 22px; padding: 16px; border-radius: 14px; border: 2px solid var(--line); background: #120d09; color: var(--cream); outline: none; }
+  input:focus { border-color: var(--gold); }
+  .money-wrap { position: relative; }
+  .money-wrap span { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 26px; color: var(--gold); pointer-events: none; }
+  .money-wrap input { padding-left: 38px; font-size: 30px; font-weight: 800; }
+  button { width: 100%; font: inherit; font-weight: 800; font-size: 20px; min-height: 60px; border-radius: 14px; border: 0; background: var(--gold); color: #1a130c; cursor: pointer; }
+  button:disabled { opacity: .4; }
+  button:active:not(:disabled) { transform: scale(.98); }
+  .hint { min-height: 20px; font-size: 15px; margin-top: 8px; color: var(--dim); }
+  .err { color: var(--bad); }
+  .item { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; }
+  .item .art { width: 96px; aspect-ratio: 5/7; border-radius: 10px; overflow: hidden; background: #120d09; display:flex; align-items:center; justify-content:center; }
+  .item .art img { width: 100%; height: 100%; object-fit: cover; }
+  .item .art svg { width: 100%; height: 100%; }
+  .item .q { font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--rust); font-weight: 800; }
+  .item .nm { font-size: 22px; line-height: 1.15; margin: 4px 0 6px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; }
+  .meta span { font-size: 13px; background: #120d09; border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; color: var(--dim); }
+  .meta span b { color: var(--cream); font-weight: 600; }
+  .big { font-size: 54px; color: var(--gold); line-height: 1; }
+  .center { text-align: center; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .stat { background: #120d09; border-radius: 12px; padding: 12px 6px; text-align: center; }
+  .stat .v { font-size: 26px; font-weight: 800; }
+  .stat .k { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+  .pts5,.pts4 { color: var(--teal); } .pts3,.pts2 { color: var(--gold); } .pts1,.pts0 { color: var(--bad); }
+  .list { margin: 0; padding: 0; list-style: none; }
+  .list li { display: flex; justify-content: space-between; padding: 10px 2px; border-bottom: 1px solid var(--line); font-size: 16px; }
+  .list li.me { color: var(--gold); font-weight: 800; }
+  .list li:last-child { border-bottom: 0; }
+  .lock { font-size: 44px; }
+  .pulse { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  .conn { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); background: var(--rust); color: #fff; font-size: 13px; padding: 6px 12px; border-radius: 999px; display: none; }
+  .conn.show { display: block; }
+  .pop { animation: pop .45s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo display">Guess the Price</div>
+  <div class="chip" id="me" hidden></div>
+</header>
+<main id="app"></main>
+<div class="conn" id="conn">Reconnecting…</div>
+
+<script src="/static/js/live.js"></script>
+<script>
+const { connectLive, money, pct, esc, ordinal, parseMoney, placeholderSVG } = Live;
+const app = document.getElementById('app');
+const KEY = 'gtp_player_token';
+let token = null, state = null, screenKey = '', live = null, submitting = false;
+try { token = localStorage.getItem(KEY); } catch (e) {}
+
+function itemCard(it) {
+  const art = it.photo ? `<img src="${esc(it.photo)}" alt="">` : placeholderSVG(it.name);
+  const meta = [
+    it.set && `<span>Set <b>${esc(it.set)}</b></span>`,
+    it.grade && `<span>Grade <b>${esc(it.grade)}</b></span>`,
+    it.population && `<span>Pop <b>${esc(it.population)}</b></span>`,
+  ].filter(Boolean).join('');
+  return `<div class="panel item">
+    <div class="art">${art}</div>
+    <div><div class="q">What's it worth?</div><div class="nm display">${esc(it.name)}</div><div class="meta">${meta}</div></div>
+  </div>`;
+}
+
+function renderJoin(msg) {
+  screenKey = 'join';
+  document.getElementById('me').hidden = true;
+  app.innerHTML = `
+    <div class="panel">
+      <h1 class="display">Welcome!</h1>
+      <p>Enter a name so the host knows who's winning. No account needed.</p>
+    </div>
+    <form class="panel" id="joinForm" autocomplete="off">
+      <label for="name">Your name</label>
+      <input id="name" maxlength="20" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="e.g. Priya" required>
+      <div class="hint ${msg ? 'err' : ''}" id="joinHint">${esc(msg || '')}</div>
+      <button type="submit" style="margin-top:8px">Join game</button>
+    </form>`;
+  const f = document.getElementById('joinForm');
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = f.querySelector('button'); btn.disabled = true;
+    const name = document.getElementById('name').value;
+    try {
+      const r = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+      const j = await r.json();
+      if (!r.ok) {
+        document.getElementById('joinHint').className = 'hint err';
+        document.getElementById('joinHint').textContent = j.error || 'Could not join';
+        if (j.suggestion) document.getElementById('name').value = j.suggestion;
+        btn.disabled = false; return;
+      }
+      token = j.token;
+      try { localStorage.setItem(KEY, token); } catch (e) {}
+      start();
+    } catch (err) {
+      document.getElementById('joinHint').textContent = 'Network problem — try again.';
+      btn.disabled = false;
+    }
+  };
+}
+
+function updateHeader(s) {
+  const el = document.getElementById('me');
+  el.hidden = false;
+  el.innerHTML = `${esc(s.me.name)} · <b>${s.me.points} pts</b>${s.me.rank && s.revealedCount ? ' · ' + ordinal(s.me.rank) : ''}`;
+}
+
+function render(s) {
+  state = s;
+  updateHeader(s);
+  const it = s.item;
+  const key = [s.phase, it && it.id, s.myGuess, it && it.price, s.revealedCount].join('|');
+  if (key === screenKey) return updateLive(s);
+  screenKey = key;
+
+  if (s.phase === 'lobby' || (!it && s.phase !== 'finished')) {
+    app.innerHTML = `<div class="panel center"><div class="lock">🃏</div><h1 class="display">You're in, ${esc(s.me.name)}!</h1>
+      <p class="pulse">Waiting for the host to start the first item…</p></div>
+      <div class="panel"><p><b style="color:var(--cream)" id="pc">${s.playerCount}</b> players joined. Keep this page open — it updates by itself.</p></div>`;
+    return;
+  }
+  if (s.phase === 'finished') {
+    const top = s.leaderboard.slice(0, 10).map((r) => `<li class="${r.id === s.me.id ? 'me' : ''}"><span>${ordinal(r.rank)} &nbsp;${esc(r.name)}</span><span>${r.points} pts</span></li>`).join('');
+    app.innerHTML = `<div class="panel center pop"><div class="lock">🏆</div><h1 class="display">Game over!</h1>
+      <p>You finished <b style="color:var(--gold)">${ordinal(s.me.rank)}</b> of ${s.me.of} with ${s.me.points} points.</p></div>
+      <div class="panel"><ul class="list">${top}</ul></div>`;
+    return;
+  }
+
+  const head = `<p style="text-align:center">Item ${s.itemNumber} of ${s.itemCount}</p>` + itemCard(it);
+
+  if (s.phase === 'open' && s.myGuess == null) {
+    app.innerHTML = head + `
+      <form class="panel" id="guessForm" autocomplete="off">
+        <label for="amt">Your guess (one shot — it locks when you submit)</label>
+        <div class="money-wrap"><span>$</span>
+          <input id="amt" type="text" inputmode="decimal" enterkeyhint="done" placeholder="0" autocomplete="off" autocorrect="off">
+        </div>
+        <div class="hint" id="hint">&nbsp;</div>
+        <button type="submit" id="go" disabled>Lock in my guess</button>
+      </form>
+      <p class="center" id="count">${s.guessCount} of ${s.playerCount} in</p>`;
+    const amt = document.getElementById('amt'), hint = document.getElementById('hint'), go = document.getElementById('go');
+    amt.addEventListener('input', () => {
+      if (/[^\d.,]/.test(amt.value)) amt.value = amt.value.replace(/[^\d.,]/g, ''); // "$" is already shown
+      const v = parseMoney(amt.value);
+      go.disabled = v === null;
+      hint.className = 'hint' + (amt.value && v === null ? ' err' : '');
+      hint.textContent = !amt.value ? ' ' : v === null ? 'Numbers only, greater than 0' : `You're guessing ${money(v)}`;
+    });
+    document.getElementById('guessForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const v = parseMoney(amt.value);
+      if (v === null || submitting) return;
+      submitting = true; go.disabled = true; go.textContent = 'Locking in…'; amt.blur();
+      try {
+        const r = await fetch('/api/guess', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, itemId: it.id, amount: amt.value }) });
+        const j = await r.json();
+        if (!r.ok) { hint.className = 'hint err'; hint.textContent = j.error; go.textContent = 'Lock in my guess'; go.disabled = false; if (r.status === 401) return forget(); }
+        // Success: the server pushes new state over the socket, which swaps to the "locked" screen.
+      } catch (err) {
+        hint.className = 'hint err'; hint.textContent = 'Network hiccup — tap again.'; go.disabled = false; go.textContent = 'Lock in my guess';
+      } finally { submitting = false; }
+    };
+    return;
+  }
+
+  if ((s.phase === 'open' || s.phase === 'closed') && s.myGuess != null) {
+    app.innerHTML = head + `<div class="panel center pop"><div class="lock">🔒</div>
+      <p>Locked in</p><div class="big display">${money(s.myGuess)}</div>
+      <p class="pulse" style="margin-top:12px">Waiting for the host to reveal the price…</p></div>
+      <p class="center" id="count">${s.guessCount} of ${s.playerCount} in</p>`;
+    return;
+  }
+
+  if (s.phase === 'closed') {
+    app.innerHTML = head + `<div class="panel center"><div class="lock">⏱️</div><h1 class="display">Guessing closed</h1>
+      <p>You didn't get a guess in for this one. Reveal coming up…</p></div>`;
+    return;
+  }
+
+  if (s.phase === 'revealed') {
+    const r = s.myResult;
+    const mine = r && !r.missed
+      ? `<div class="stats">
+           <div class="stat"><div class="v">${money(r.guess)}</div><div class="k">Your guess</div></div>
+           <div class="stat"><div class="v">${pct(r.pctError)}</div><div class="k">Off by</div></div>
+           <div class="stat"><div class="v pts${r.points}">+${r.points}</div><div class="k">Points</div></div>
+         </div>`
+      : `<p style="margin-top:12px">You missed this one — 0 points.</p>`;
+    const all = (s.results || []).map((x) => `<li class="${x.playerId === s.me.id ? 'me' : ''}"><span>${esc(x.name)}</span>
+      <span>${x.missed ? '—' : money(x.guess) + ' · <b class="pts' + x.points + '">+' + x.points + '</b>'}</span></li>`).join('');
+    app.innerHTML = head + `<div class="panel center pop"><p>The true price</p><div class="big display">${money(it.price)}</div>${mine}
+      <div class="stats" style="grid-template-columns:1fr 1fr">
+        <div class="stat"><div class="v">${s.me.points}</div><div class="k">Total points</div></div>
+        <div class="stat"><div class="v">${s.me.rank ? ordinal(s.me.rank) : '—'}</div><div class="k">of ${s.me.of}</div></div>
+      </div></div>
+      <div class="panel"><p style="margin-bottom:6px">Everyone's guesses</p><ul class="list">${all}</ul></div>`;
+  }
+}
+
+// Small in-place updates that must not wipe what the player is typing.
+function updateLive(s) {
+  const c = document.getElementById('count'); if (c) c.textContent = `${s.guessCount} of ${s.playerCount} in`;
+  const pc = document.getElementById('pc'); if (pc) pc.textContent = s.playerCount;
+}
+
+function forget(msg) {
+  if (live) live.stop();
+  token = null;
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  renderJoin(msg);
+}
+
+function start() {
+  if (live) live.stop();
+  app.innerHTML = '<div class="panel center"><p class="pulse">Connecting…</p></div>';
+  live = connectLive({ role: 'player', token }, {
+    onState: render,
+    onMessage: (m) => { if (m.type === 'kicked') forget('The host reset the player list. Please join again.'); },
+    onStatus: (ok) => document.getElementById('conn').classList.toggle('show', !ok),
+  });
+}
+
+if (token) start(); else renderJoin();
+</script>
+</body>
+</html>

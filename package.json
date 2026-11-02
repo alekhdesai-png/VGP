@@ -1,0 +1,19 @@
+{
+  "name": "guess-the-price",
+  "version": "1.0.0",
+  "description": "Live Guess the Price party game: phones guess, TV shows the leaderboard.",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "start:tunnel": "node server.js --tunnel",
+    "test": "node --test test/scoring.test.js test/validate.test.js",
+    "simulate": "node test/simulate.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  }
+}

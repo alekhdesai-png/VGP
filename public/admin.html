@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guess the Price — Host Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=DM+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#17120d; --card:#221911; --line:#3b2d20; --cream:#f3e6c8; --dim:#ad9a78; --gold:#e0a83a; --rust:#c8562e; --teal:#4fa39c; --bad:#e2664a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--cream); font: 15px/1.45 'DM Sans', system-ui, sans-serif; }
+  .display { font-family: 'Abril Fatface', Georgia, serif; font-weight: 400; }
+  a { color: var(--gold); }
+  .bar { position: sticky; top: 0; z-index: 5; background: rgba(23,18,13,.96); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .bar .brand { font-size: 22px; color: var(--gold); margin-right: 8px; }
+  .now { flex: 1; min-width: 240px; }
+  .now .t { font-weight: 800; font-size: 16px; }
+  .now .s { color: var(--dim); font-size: 13px; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; background: var(--line); }
+  .pill.open { background: var(--teal); color: #0d1716; } .pill.closed { background: var(--rust); } .pill.revealed { background: var(--gold); color: #1a130c; }
+  button { white-space: nowrap; font: inherit; font-weight: 800; border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; background: var(--line); color: var(--cream); }
+  button.primary { background: var(--gold); color: #1a130c; }
+  button.teal { background: var(--teal); color: #0d1716; }
+  button.danger { background: transparent; border: 1px solid var(--bad); color: var(--bad); }
+  button.sm { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+  button:disabled { opacity: .35; cursor: not-allowed; }
+  .wrapper { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(340px, 1fr); gap: 18px; padding: 18px 20px 60px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 900px) { .wrapper { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--rust); }
+  h2 .r { float: right; color: var(--dim); letter-spacing: 0; text-transform: none; font-weight: 400; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-size: 12px; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.current td { background: rgba(224,168,58,.08); }
+  .muted { color: var(--dim); }
+  .thumb { width: 38px; height: 52px; border-radius: 5px; object-fit: cover; background: #120d09; display: block; }
+  .thumb svg { width: 38px; height: 52px; }
+  .actions { white-space: nowrap; text-align: right; }
+  .actions button { margin-left: 3px; }
+  label { display: block; font-size: 13px; color: var(--dim); margin: 10px 0 4px; }
+  label .req { color: var(--gold); }
+  input, textarea { width: 100%; font: inherit; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--line); background: #120d09; color: var(--cream); }
+  input:focus, textarea:focus { outline: none; border-color: var(--gold); }
+  textarea { min-height: 120px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-btns { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .preview { display: grid; grid-template-columns: 70px 1fr; gap: 12px; align-items: center; background: #120d09; border: 1px dashed var(--line); border-radius: 12px; padding: 10px; margin-top: 14px; }
+  .preview .art { width: 70px; aspect-ratio: 5/7; border-radius: 6px; overflow: hidden; }
+  .preview .art img, .preview .art svg { width: 100%; height: 100%; object-fit: cover; }
+  .preview .q { font-size: 11px; color: var(--rust); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 800; }
+  .preview .nm { font-size: 18px; }
+  .msg { font-size: 13px; margin-top: 8px; min-height: 18px; }
+  .msg.err { color: var(--bad); } .msg.ok { color: var(--teal); }
+  .pts5,.pts4 { color: var(--teal); } .pts3,.pts2 { color: var(--gold); } .pts1,.pts0 { color: var(--bad); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5a4a38; margin-right: 6px; }
+  .dot.on { background: var(--teal); }
+  .login { max-width: 360px; margin: 14vh auto; text-align: center; }
+  .login input { font-size: 32px; text-align: center; letter-spacing: 12px; }
+  .urls div { margin: 4px 0; word-break: break-all; }
+  .bulkhelp { font-size: 12px; color: var(--dim); margin-top: 6px; }
+  .bulkhelp code { color: var(--cream); }
+  .big-price { font-size: 22px; color: var(--gold); }
+</style>
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <div class="display" style="font-size:34px;color:var(--gold)">Host Admin</div>
+  <p class="muted">Enter the PIN printed in the terminal when the server started.</p>
+  <form id="loginForm"><input id="pin" inputmode="numeric" maxlength="8" autocomplete="off" autofocus>
+    <div class="msg err" id="loginMsg"></div>
+    <button class="primary" style="width:100%;margin-top:10px">Unlock</button></form>
+</div>
+
+<div id="panel" hidden>
+  <div class="bar">
+    <div class="brand display">Guess the Price</div>
+    <div class="now"><div class="t" id="nowT"></div><div class="s" id="nowS"></div></div>
+    <button class="teal" id="btnClose">Close guessing</button>
+    <button class="primary" id="btnReveal">Reveal price</button>
+    <button id="btnNext">Next item ▶</button>
+    <a href="/tv" target="_blank">Open TV view ↗</a>
+  </div>
+
+  <div class="wrapper">
+    <div class="col">
+      <div class="card">
+        <h2>Live guesses <span class="r" id="liveCount"></span></h2>
+        <div id="live"></div>
+      </div>
+      <div class="card">
+        <h2>Items / questions <span class="r" id="itemsCount"></span></h2>
+        <div id="items"></div>
+      </div>
+      <div class="card">
+        <h2>Players <span class="r" id="playersCount"></span></h2>
+        <div id="players"></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <form class="card" id="itemForm" autocomplete="off">
+        <h2 id="formTitle">Create a question</h2>
+        <label>Card name <span class="req">*</span></label>
+        <input id="fName" maxlength="80" placeholder="e.g. Mickey Mantle #311" required>
+        <div class="two">
+          <div><label>Set</label><input id="fSet" maxlength="80" placeholder="e.g. 1952 Topps"></div>
+          <div><label>Population</label><input id="fPop" maxlength="40" placeholder="e.g. 1,250"></div>
+        </div>
+        <div class="two">
+          <div><label>Grade (optional)</label><input id="fGrade" maxlength="40" placeholder="e.g. PSA 8"></div>
+          <div><label>True price <span class="req">*</span> (hidden from players)</label><input id="fPrice" inputmode="decimal" placeholder="$ 1,200" required></div>
+        </div>
+        <label>Image</label>
+        <input id="fPhoto" type="file" accept="image/*">
+        <div id="photoNote" class="bulkhelp"></div>
+        <div class="preview"><div class="art" id="pvArt"></div>
+          <div><div class="q">Players will see</div><div class="nm display" id="pvName"></div><div class="muted" id="pvMeta" style="font-size:13px"></div></div></div>
+        <div class="row-btns">
+          <button class="primary" id="fSave">Add question</button>
+          <button type="button" id="fCancel" hidden>Cancel edit</button>
+          <button type="button" id="fRemovePhoto" class="sm" hidden>Remove photo</button>
+        </div>
+        <div class="msg" id="formMsg"></div>
+      </form>
+
+      <div class="card">
+        <h2>Bulk add</h2>
+        <textarea id="bulk" placeholder="Mickey Mantle #311, $1,200
+Charizard | 1999 Base Set | 4,200 | 1250"></textarea>
+        <div class="bulkhelp">One per line. <code>name, price</code> or <code>name | set | population | price</code> (tabs from a spreadsheet work too). Lines starting with # are ignored.</div>
+        <div class="row-btns"><button class="primary" id="bulkBtn">Add all</button></div>
+        <div class="msg" id="bulkMsg"></div>
+      </div>
+
+      <div class="card urls">
+        <h2>Join link</h2>
+        <div>Phones: <a id="uJoin" target="_blank"></a></div>
+        <div class="muted" id="uExtra"></div>
+        <label>Override join URL (e.g. a tunnel URL) — blank uses the Wi-Fi address</label>
+        <div style="display:flex;gap:8px"><input id="pubUrl" placeholder="https://…"><button class="sm" id="pubSave">Save</button></div>
+        <div class="msg" id="urlMsg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Reset</h2>
+        <div class="row-btns" style="margin-top:0">
+          <button class="danger" data-reset="scores">New game (clear scores)</button>
+          <button class="danger" data-reset="players">Clear scores + players</button>
+          <button class="danger" data-reset="all">Wipe everything</button>
+        </div>
+        <div class="bulkhelp">“Wipe everything” deletes all items (including the 3 samples), photos, players and scores.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/live.js"></script>
+<script>
+const { connectLive, money, pct, esc, parseMoney, placeholderSVG } = Live;
+const $ = (id) => document.getElementById(id);
+const KEY = 'gtp_admin_token';
+let token = null, S = null, live = null, editingId = null, photoData = null, removePhoto = false;
+try { token = localStorage.getItem(KEY); } catch (e) {}
+
+async function api(method, path, body) {
+  const r = await fetch('/api/admin' + path, { method, headers: { 'Content-Type': 'application/json', 'x-admin-token': token || '' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { showLogin(); throw new Error('Please log in again'); }
+  if (!r.ok) throw new Error(j.error || 'Request failed');
+  return j;
+}
+const act = (fn) => async (...a) => { try { await fn(...a); } catch (e) { alert(e.message); } };
+
+function showLogin() {
+  if (live) live.stop();
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  $('panel').hidden = true; $('login').hidden = false; $('pin').focus();
+}
+$('loginForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const r = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: $('pin').value.trim() }) });
+  const j = await r.json();
+  if (!r.ok) { $('loginMsg').textContent = j.error; $('pin').select(); return; }
+  token = j.token; try { localStorage.setItem(KEY, token); } catch (e) {}
+  startPanel();
+};
+
+function startPanel() {
+  $('login').hidden = true; $('panel').hidden = false;
+  live = connectLive({ role: 'admin', token }, {
+    onState: render,
+    onMessage: (m) => { if (m.type === 'unauthorized') showLogin(); },
+  });
+}
+
+// ---------- render ----------
+function render(s) {
+  S = s;
+  const cur = s.item;
+  const phaseLabel = { lobby: 'Lobby', open: 'Guessing open', closed: 'Guessing closed', revealed: 'Revealed', finished: 'Finished' }[s.phase];
+  $('nowT').innerHTML = `<span class="pill ${s.phase}">${phaseLabel}</span> &nbsp;${cur ? esc(cur.name) + ` <span class="muted">(${s.itemNumber}/${s.itemCount})</span>` : s.phase === 'finished' ? 'All items played' : 'No item in play — press Start on an item below'}`;
+  $('nowS').innerHTML = cur ? `True price <b style="color:var(--gold)">${money(s.currentPrice)}</b> · ${s.guessCount} of ${s.playerCount} guesses in` : `${s.playerCount} players joined`;
+  $('btnClose').disabled = s.phase !== 'open';
+  $('btnReveal').disabled = !(s.phase === 'open' || s.phase === 'closed');
+  $('btnNext').disabled = !s.items.length || s.phase === 'finished' && !s.items.some((i) => !i.revealed);
+  $('btnNext').textContent = s.phase === 'lobby' || s.phase === 'finished' ? 'Start first item ▶' : 'Next item ▶';
+  if (s.phase === 'lobby' || s.phase === 'finished') $('btnNext').disabled = !s.items.some((i) => !i.revealed);
+
+  // live guesses (host-only; never sent to players or TV before reveal)
+  $('liveCount').textContent = cur ? `${s.guessCount} / ${s.playerCount}` : '';
+  $('live').innerHTML = !cur ? '<div class="muted">Start an item to see guesses arrive here in real time.</div>'
+    : !s.liveGuesses.length ? '<div class="muted">No players yet.</div>'
+    : `<table><tr><th>Player</th><th class="num">Guess</th><th class="num">Off</th><th class="num">Pts</th></tr>${s.liveGuesses.map((g) => g.missed
+        ? `<tr><td>${esc(g.name)}</td><td class="num muted" colspan="3">waiting…</td></tr>`
+        : `<tr><td>${esc(g.name)}</td><td class="num">${money(g.guess)}</td><td class="num muted">${pct(g.pctError)}</td><td class="num pts${g.points}"><b>${g.points}</b></td></tr>`).join('')}</table>`;
+
+  // items
+  $('itemsCount').textContent = `${s.items.length} total · ${s.revealedCount} played`;
+  $('items').innerHTML = !s.items.length ? '<div class="muted">No items yet. Create a question on the right, or bulk add.</div>'
+    : `<table><tr><th></th><th>Item</th><th class="num">Price</th><th>Status</th><th></th></tr>${s.items.map((i, k) => `
+      <tr class="${cur && cur.id === i.id ? 'current' : ''}">
+        <td>${i.photo ? `<img class="thumb" src="${esc(i.photo)}">` : `<div class="thumb">${placeholderSVG(i.name)}</div>`}</td>
+        <td><b>${k + 1}. ${esc(i.name)}</b><div class="muted" style="font-size:12px">${[i.set, i.grade, i.population && 'Pop ' + i.population].filter(Boolean).map(esc).join(' · ') || '&nbsp;'}</div></td>
+        <td class="num">${money(i.price)}</td>
+        <td class="muted" style="font-size:12px">${cur && cur.id === i.id ? `<b style="color:var(--gold)">${s.phase}</b>` : i.revealed ? 'played' : 'not played'}${i.guessCount ? ` · ${i.guessCount} guesses` : ''}</td>
+        <td class="actions">
+          <button class="sm" data-move="up" data-id="${i.id}" ${k === 0 ? 'disabled' : ''} title="Move up">▲</button>
+          <button class="sm" data-move="down" data-id="${i.id}" ${k === s.items.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+          <button class="sm teal" data-start="${i.id}">Start</button>
+          <button class="sm" data-edit="${i.id}">Edit</button>
+          <button class="sm danger" data-del="${i.id}">✕</button>
+        </td></tr>`).join('')}</table>`;
+
+  // players
+  const lbById = Object.fromEntries(s.leaderboard.map((r) => [r.id, r]));
+  $('playersCount').textContent = `${s.playerCount} joined · ${s.players.filter((p) => p.online).length} online`;
+  $('players').innerHTML = !s.players.length ? '<div class="muted">Nobody yet — put the TV view up so friends can scan the QR.</div>'
+    : `<table><tr><th>Name</th><th class="num">Rank</th><th class="num">Points</th><th></th></tr>${s.players.map((p) => `
+      <tr><td><span class="dot ${p.online ? 'on' : ''}"></span>${esc(p.name)}</td><td class="num">${lbById[p.id]?.rank ?? ''}</td><td class="num">${lbById[p.id]?.points ?? 0}</td>
+      <td class="actions"><button class="sm" data-rename="${p.id}">Rename</button><button class="sm danger" data-kick="${p.id}">Remove</button></td></tr>`).join('')}</table>`;
+
+  // urls
+  $('uJoin').textContent = s.urls.join; $('uJoin').href = s.urls.join;
+  $('uExtra').innerHTML = [s.urls.lan && `Wi-Fi: ${esc(s.urls.lan)}`, s.urls.tunnel && `Tunnel: ${esc(s.urls.tunnel)}`].filter(Boolean).join('<br>');
+  if (document.activeElement !== $('pubUrl')) $('pubUrl').value = s.urls.public || '';
+}
+
+// ---------- controls ----------
+$('btnClose').onclick = act(() => api('POST', '/close'));
+$('btnReveal').onclick = act(() => api('POST', '/reveal'));
+$('btnNext').onclick = act(async () => {
+  if (S.phase === 'open' && S.guessCount < S.playerCount && !confirm(`Only ${S.guessCount} of ${S.playerCount} have guessed and the price isn't revealed. Skip to the next item anyway?`)) return;
+  await api('POST', '/next');
+});
+document.addEventListener('click', act(async (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.move) await api('POST', `/items/${b.dataset.move && b.dataset.id}/move`, { dir: b.dataset.move });
+  if (b.dataset.start) {
+    const it = S.items.find((i) => i.id === b.dataset.start);
+    if (it.revealed && !confirm('This item was already revealed — everyone has seen the price. Re-open it anyway? (Existing guesses are kept.)')) return;
+    if (S.phase === 'open' && S.item && S.item.id !== it.id && !confirm('Another item is open for guessing. Switch to this one?')) return;
+    await api('POST', '/start', { itemId: it.id });
+  }
+  if (b.dataset.edit) beginEdit(b.dataset.edit);
+  if (b.dataset.del) {
+    const it = S.items.find((i) => i.id === b.dataset.del);
+    if (confirm(`Delete "${it.name}"? Any guesses on it are removed too.`)) { await api('DELETE', `/items/${it.id}`); if (editingId === it.id) resetForm(); }
+  }
+  if (b.dataset.kick) { const p = S.players.find((x) => x.id === b.dataset.kick); if (confirm(`Remove ${p.name}? Their score is deleted.`)) await api('DELETE', `/players/${p.id}`); }
+  if (b.dataset.rename) { const p = S.players.find((x) => x.id === b.dataset.rename); const n = prompt('New name', p.name); if (n) await api('PUT', `/players/${p.id}`, { name: n }); }
+  if (b.dataset.reset) {
+    const txt = { scores: 'Start a new game? All scores and guesses are cleared; items and players stay.', players: 'Clear all scores AND remove every player? They will need to re-join.', all: 'WIPE EVERYTHING? All items, photos, players and scores are deleted. This cannot be undone.' }[b.dataset.reset];
+    if (confirm(txt)) { await api('POST', '/reset', { mode: b.dataset.reset }); resetForm(); }
+  }
+}));
+
+// ---------- question builder ----------
+function updatePreview() {
+  const name = $('fName').value.trim() || 'Card name';
+  const src = photoData || (!removePhoto && editingId && S.items.find((i) => i.id === editingId)?.photo);
+  $('pvArt').innerHTML = src ? `<img src="${esc(src)}">` : placeholderSVG(name);
+  $('pvName').textContent = name;
+  $('pvMeta').textContent = [$('fSet').value.trim() && 'Set: ' + $('fSet').value.trim(), $('fGrade').value.trim() && 'Grade: ' + $('fGrade').value.trim(), $('fPop').value.trim() && 'Pop: ' + $('fPop').value.trim()].filter(Boolean).join(' · ') || 'Set · Grade · Population';
+}
+['fName', 'fSet', 'fPop', 'fGrade'].forEach((id) => $(id).addEventListener('input', updatePreview));
+
+// Shrink big phone photos in the browser before upload (max 1400px, JPEG).
+async function fileToDataUrl(file) {
+  const raw = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(file); });
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = raw; });
+    const scale = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.86);
+  } catch (e) {
+    if (/^data:image\/(png|jpe?g|webp|gif);/.test(raw)) return raw;
+    throw new Error("This browser can't read that image format (HEIC?). Export it as JPG or PNG and try again.");
+  }
+}
+$('fPhoto').onchange = act(async () => {
+  const f = $('fPhoto').files[0]; if (!f) return;
+  $('photoNote').textContent = 'Processing photo…';
+  photoData = await fileToDataUrl(f); removePhoto = false;
+  $('photoNote').textContent = `Ready (${Math.round(photoData.length * 0.75 / 1024)} KB)`;
+  $('fRemovePhoto').hidden = false;
+  updatePreview();
+});
+$('fRemovePhoto').onclick = () => { photoData = null; removePhoto = true; $('fPhoto').value = ''; $('photoNote').textContent = 'Photo will be removed'; $('fRemovePhoto').hidden = true; updatePreview(); };
+
+function resetForm() {
+  editingId = null; photoData = null; removePhoto = false;
+  $('itemForm').reset(); $('photoNote').textContent = '';
+  $('formTitle').textContent = 'Create a question'; $('fSave').textContent = 'Add question';
+  $('fCancel').hidden = true; $('fRemovePhoto').hidden = true;
+  updatePreview();
+}
+function beginEdit(id) {
+  const it = S.items.find((i) => i.id === id); if (!it) return;
+  resetForm(); editingId = id;
+  $('fName').value = it.name; $('fSet').value = it.set || ''; $('fPop').value = it.population || ''; $('fGrade').value = it.grade || ''; $('fPrice').value = it.price;
+  $('formTitle').textContent = 'Edit question'; $('fSave').textContent = 'Save changes'; $('fCancel').hidden = false; $('fRemovePhoto').hidden = !it.photo;
+  updatePreview();
+  $('itemForm').scrollIntoView({ behavior: 'smooth' }); $('fName').focus();
+}
+$('fCancel').onclick = resetForm;
+$('itemForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const msg = $('formMsg'); msg.className = 'msg';
+  if (parseMoney($('fPrice').value) === null) { msg.className = 'msg err'; msg.textContent = 'True price must be a number greater than 0.'; return; }
+  const body = { name: $('fName').value, set: $('fSet').value, population: $('fPop').value, grade: $('fGrade').value, price: $('fPrice').value };
+  if (photoData) body.photoData = photoData;
+  if (removePhoto) body.removePhoto = true;
+  $('fSave').disabled = true;
+  try {
+    if (editingId) await api('PUT', `/items/${editingId}`, body); else await api('POST', '/items', body);
+    msg.className = 'msg ok'; msg.textContent = editingId ? 'Saved.' : `Added "${body.name.trim()}".`;
+    resetForm(); $('fName').focus();
+  } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; }
+  finally { $('fSave').disabled = false; }
+};
+
+$('bulkBtn').onclick = async () => {
+  const m = $('bulkMsg');
+  try {
+    const r = await api('POST', '/bulk', { text: $('bulk').value });
+    m.className = r.errors.length ? 'msg err' : 'msg ok';
+    m.innerHTML = `Added ${r.added}.` + (r.errors.length ? ' Skipped:<br>' + r.errors.map((x) => `Line ${x.line}: ${esc(x.error)} — <code>${esc(x.text)}</code>`).join('<br>') : '');
+    if (!r.errors.length) $('bulk').value = '';
+    else $('bulk').value = r.errors.map((x) => x.text).join('\n');
+  } catch (e) { m.className = 'msg err'; m.textContent = e.message; }
+};
+
+$('pubSave').onclick = async () => {
+  try { await api('POST', '/settings', { publicUrl: $('pubUrl').value }); $('urlMsg').className = 'msg ok'; $('urlMsg').textContent = 'Saved — the TV QR code now points here.'; }
+  catch (e) { $('urlMsg').className = 'msg err'; $('urlMsg').textContent = e.message; }
+};
+
+updatePreview();
+if (token) startPanel(); else showLogin();
+</script>
+</body>
+</html>
